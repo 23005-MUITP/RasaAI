@@ -1,11 +1,11 @@
 import os
 from langchain_groq import ChatGroq
 from langchain_community.tools import DuckDuckGoSearchRun
-from langchain.agents import AgentExecutor, create_tool_calling_agent
-from langchain_core.prompts import ChatPromptTemplate
+from langchain.agents import create_react_agent, AgentExecutor
+from langchain.prompts import PromptTemplate
 from langchain.memory import ConversationBufferMemory
 
-# Hardcoded for demo simplicity
+# Hardcoded for demo simplicity as per user context
 part1 = "gsk_3iak"
 part2 = "xi7Q4mIX4JdXYWkgWGdyb3FY"
 part3 = "9FFPLxvYqctHG9aRtJxM8mb1"
@@ -20,9 +20,10 @@ def get_agent_executor():
     search = DuckDuckGoSearchRun()
     tools = [search]
 
-    # Modern Chat Prompt with Placeholders for Agent functionality
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", """You are Rasa AI, a helpful and friendly shopping assistant for the Indian market.
+    memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+
+    # Custom ReAct Prompt with System Message
+    template = """You are Rasa AI, a helpful and friendly shopping assistant for the Indian market.
 Your goal is to help users find food and fashion products from Indian D2C brands.
 
 Follow these steps:
@@ -38,35 +39,56 @@ Important:
 - Don't make up products.
 - MUST include valid URLs/Links for every product recommended.
 - If a user just says "Hello", greet them warmly and ask what they are shopping for today.
-"""),
-        ("placeholder", "{chat_history}"),
-        ("human", "{input}"),
-        ("placeholder", "{agent_scratchpad}"),
-    ])
 
-    # Construct the agent with the new factory function
-    agent = create_tool_calling_agent(llm, tools, prompt)
+TOOLS:
+------
+You have access to the following tools:
 
-    # Memory state
-    memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+{tools}
 
-    # Create the Executor
+To use a tool, please use the following format:
+
+```
+Thought: Do I need to use a tool? Yes
+Action: the action to take, should be one of [{tool_names}]
+Action Input: the input to the action
+Observation: the result of the action
+```
+
+When you have a response to say to the Human, or if you do not need to use a tool, you MUST use the format:
+
+```
+Thought: Do I need to use a tool? No
+Final Answer: [your response here]
+```
+
+Begin!
+
+Previous conversation history:
+{chat_history}
+
+New input: {input}
+{agent_scratchpad}"""
+
+    prompt = PromptTemplate.from_template(template)
+
+    agent = create_react_agent(llm, tools, prompt)
+    
     agent_executor = AgentExecutor(
-        agent=agent, 
-        tools=tools, 
-        memory=memory, 
+        agent=agent,
+        tools=tools,
         verbose=True,
+        memory=memory,
         handle_parsing_errors=True
     )
 
     return agent_executor
 
-# Global instance
+# Global instance for stateful demo (simple in-memory)
 agent_instance = get_agent_executor()
 
 def chat_with_agent(user_input: str):
     try:
-        # AgentExecutor expects 'input' key
         response = agent_instance.invoke({"input": user_input})
         return response['output']
     except Exception as e:
