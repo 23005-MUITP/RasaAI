@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rasa AI - Personal Shopping Assistant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Phosphor Icons for nice UI icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Marked.js for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <header class="main-header">
+            <div class="logo-area">
+                <i class="ph-fill ph-robot" style="font-size: 1.5rem; color: var(--primary);"></i>
+                <div class="header-text">
+                    <h1>Rasa AI</h1>
+                </div>
+            </div>
+            <p class="subtitle">Your intelligent shopping assistant for India</p>
+        </header>
+
+        <main class="chat-container">
+            <div id="chat-history" class="chat-history">
+                <!-- Messages will appear here -->
+                <div class="message-bubble ai-msg">
+                    <div class="message-content">
+                        <p>Hello! 👋 I'm Rasa AI. I can help you find food & fashion from Indian brands.</p>
+                        <p>Try asking: <em>"Find me vegan snacks under ₹300"</em></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <div class="input-wrapper">
+                    <input type="text" id="user-query" placeholder="Ask anything..." autocomplete="off" />
+                    <button id="send-btn" aria-label="Send Message">
+                        <i class="ph-bold ph-paper-plane-right"></i>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
