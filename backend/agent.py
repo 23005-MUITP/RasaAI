@@ -1,10 +1,11 @@
 import os
 from langchain_groq import ChatGroq
 from langchain_community.tools import DuckDuckGoSearchRun
-from langchain.agents import initialize_agent, AgentType
+from langchain.agents import AgentExecutor, create_tool_calling_agent
+from langchain_core.prompts import ChatPromptTemplate
 from langchain.memory import ConversationBufferMemory
 
-# Hardcoded for demo simplicity as per user context
+# Hardcoded for demo simplicity
 part1 = "gsk_3iak"
 part2 = "xi7Q4mIX4JdXYWkgWGdyb3FY"
 part3 = "9FFPLxvYqctHG9aRtJxM8mb1"
@@ -19,43 +20,53 @@ def get_agent_executor():
     search = DuckDuckGoSearchRun()
     tools = [search]
 
+    # Modern Chat Prompt with Placeholders for Agent functionality
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", """You are Rasa AI, a helpful and friendly shopping assistant for the Indian market.
+Your goal is to help users find food and fashion products from Indian D2C brands.
+
+Follow these steps:
+1. Understand the user's needs (budget, dietary, style, occasion).
+2. If you need more info, ask clarifying questions.
+3. Use the 'duckduckgo_search' tool to find REAL products available online in India if the user asks for recommendations.
+4. Present 2-3 specific product options with their approximate prices in ₹ (INR) and DIRECT LINKS to purchase/view them.
+5. Explain WHY each product matches their needs.
+6. Keep the tone warm, young, and startup-like.
+
+Important:
+- ALWAYS search for real products when asked for recommendations.
+- Don't make up products.
+- MUST include valid URLs/Links for every product recommended.
+- If a user just says "Hello", greet them warmly and ask what they are shopping for today.
+"""),
+        ("placeholder", "{chat_history}"),
+        ("human", "{input}"),
+        ("placeholder", "{agent_scratchpad}"),
+    ])
+
+    # Construct the agent with the new factory function
+    agent = create_tool_calling_agent(llm, tools, prompt)
+
+    # Memory state
     memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 
-    system_message = """You are Rasa AI, a helpful and friendly shopping assistant for the Indian market.
-    Your goal is to help users find food and fashion products from Indian D2C brands.
-    
-    Follow these steps:
-    1. Understand the user's needs (budget, dietary, style, occasion).
-    2. If you need more info, ask clarifying questions.
-    3. Use the 'duckduckgo_search' tool to find REAL products available online in India if the user asks for recommendations.
-    4. Present 2-3 specific product options with their approximate prices in ₹ (INR) and DIRECT LINKS to purchase/view them.
-    5. Explain WHY each product matches their needs.
-    6. Keep the tone warm, young, and startup-like.
-    
-    Important:
-    - ALWAYS search for real products when asked for recommendations.
-    - Don't make up products.
-    - MUST include valid URLs/Links for every product recommended.
-    - If a user just says "Hello", greet them warmly and ask what they are shopping for today.
-    """
-
-    agent_executor = initialize_agent(
-        tools,
-        llm,
-        agent=AgentType.CHAT_CONVERSATIONAL_REACT_DESCRIPTION,
+    # Create the Executor
+    agent_executor = AgentExecutor(
+        agent=agent, 
+        tools=tools, 
+        memory=memory, 
         verbose=True,
-        memory=memory,
-        agent_kwargs={"system_message": system_message},
         handle_parsing_errors=True
     )
 
     return agent_executor
 
-# Global instance for stateful demo (simple in-memory)
+# Global instance
 agent_instance = get_agent_executor()
 
 def chat_with_agent(user_input: str):
     try:
+        # AgentExecutor expects 'input' key
         response = agent_instance.invoke({"input": user_input})
         return response['output']
     except Exception as e:
