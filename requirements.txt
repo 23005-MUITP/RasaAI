@@ -5,3 +5,5 @@ langchain-community
 duckduckgo-search
 python-dotenv
 pydantic
+langchain-openai
+langchain
